@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MikrotikAPI", "MikrotikAPI\MikrotikAPI.csproj", "{9348D57A-C779-43AE-94EE-C63B4D7A6E6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9348D57A-C779-43AE-94EE-C63B4D7A6E6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9348D57A-C779-43AE-94EE-C63B4D7A6E6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9348D57A-C779-43AE-94EE-C63B4D7A6E6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9348D57A-C779-43AE-94EE-C63B4D7A6E6E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

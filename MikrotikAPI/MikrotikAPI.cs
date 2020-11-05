@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
@@ -176,8 +177,9 @@ namespace MikrotikAPI
                   reqInfo.Tcs.SetResult(true);
                   break;
                 case PacketTypeEnum.Trap:
+                  var respPacket = (ResponsePacket)resp;
                   _requests.Remove(resp.Tag);
-                  reqInfo.Tcs.SetException(new MikrotikTrapException());
+                  reqInfo.Tcs.SetException(new MikrotikTrapException(string.Join(" ", respPacket.Attrs.Select(x => $"{x.Key}={x.Value}"))));
                   break;
                 default:
                   throw new ArgumentOutOfRangeException();

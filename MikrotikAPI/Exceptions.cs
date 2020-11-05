@@ -15,7 +15,10 @@ namespace MikrotikAPI
     public MikrotikFatalException(string message) : base(message) { }
   }
 
-  public class MikrotikTrapException : Exception { }
+  public class MikrotikTrapException : Exception
+  {
+    public MikrotikTrapException(string message) : base(message) { }
+  }
 
   public class MikrotikInvalidCredentialsException : Exception { }
 

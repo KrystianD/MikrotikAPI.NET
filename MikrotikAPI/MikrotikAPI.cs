@@ -14,6 +14,13 @@ namespace MikrotikAPI
 {
   public class MikrotikAPI
   {
+    public class Options
+    {
+      public TimeSpan ConnectTimeout = TimeSpan.FromSeconds(2);
+      public TimeSpan LoginTimeout = TimeSpan.FromSeconds(5);
+      public TimeSpan CommandTimeout = TimeSpan.FromSeconds(20);
+    }
+
     private class RequestInfo
     {
       public readonly List<Object> Responses = new List<Object>();
@@ -30,9 +37,16 @@ namespace MikrotikAPI
     private readonly object _sync = new object();
     private readonly Dictionary<string, RequestInfo> _requests = new Dictionary<string, RequestInfo>();
 
+    private readonly Options _options;
     private Stream _connection;
     private CancellationTokenSource _cancellationTokenSource;
     private int _currentTag;
+
+
+    public MikrotikAPI(Options options = null)
+    {
+      _options = options ?? new Options();
+    }
 
     public Task ConnectAsync(string host, int port, bool ssl, string username, string password)
     {
@@ -47,7 +61,9 @@ namespace MikrotikAPI
       var client = new TcpClient();
 
       try {
-        await client.ConnectAsync(host, port, TimeSpan.FromSeconds(2));
+        await client.ConnectAsync(host, port, _options.ConnectTimeout);
+
+        var loginTimeout = new CancellationTokenSource(_options.LoginTimeout);
 
         if (ssl) {
           var sslStream = new SslStream(client.GetStream());
@@ -55,7 +71,7 @@ namespace MikrotikAPI
           await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions() {
               TargetHost = "",
               RemoteCertificateValidationCallback = remoteCertificateValidationCallback,
-          }, CancellationToken.None);
+          }, loginTimeout.Token);
 
           _connection = sslStream;
         }
@@ -68,7 +84,7 @@ namespace MikrotikAPI
             ["password"] = password,
         });
 
-        var resp1 = await Parser.Parser.ReadSingleResponseAsync(_connection, CancellationToken.None).ConfigureAwait(false);
+        var resp1 = await Parser.Parser.ReadSingleResponseAsync(_connection, loginTimeout.Token).ConfigureAwait(false);
         if (resp1.Type != PacketTypeEnum.Done)
           throw new MikrotikInvalidCredentialsException();
 
@@ -80,7 +96,7 @@ namespace MikrotikAPI
               ["response"] = $"00{Utils.EncodePassword(password, responsePacket.Attrs["ret"])}",
           });
 
-          var resp2 = await Parser.Parser.ReadSingleResponseAsync(_connection, CancellationToken.None).ConfigureAwait(false);
+          var resp2 = await Parser.Parser.ReadSingleResponseAsync(_connection, loginTimeout.Token).ConfigureAwait(false);
           if (resp2.Type != PacketTypeEnum.Done)
             throw new MikrotikInvalidCredentialsException();
         }
@@ -127,7 +143,7 @@ namespace MikrotikAPI
       try {
         await SendPacketAsync(command, tagStr, attributes).ConfigureAwait(false);
 
-        if (!await WaitFutureTimeout(reqInfo.Tcs.Task, TimeSpan.FromSeconds(20)).ConfigureAwait(false))
+        if (!await WaitFutureTimeout(reqInfo.Tcs.Task, _options.CommandTimeout).ConfigureAwait(false))
           throw new TimeoutException();
 
         return new CommandResponse() {

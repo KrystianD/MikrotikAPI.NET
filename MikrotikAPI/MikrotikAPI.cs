@@ -101,7 +101,7 @@ namespace MikrotikAPI
             throw new MikrotikInvalidCredentialsException();
         }
 
-        var _ = ReaderTask();
+        ReaderTask();
         _cancellationTokenSource = new CancellationTokenSource();
       }
       catch {
@@ -174,7 +174,7 @@ namespace MikrotikAPI
       }
     }
 
-    private async Task ReaderTask()
+    private async void ReaderTask()
     {
       try {
         for (;;) {

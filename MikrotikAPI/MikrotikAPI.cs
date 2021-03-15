@@ -122,13 +122,13 @@ namespace MikrotikAPI
       DisconnectInternal(new SocketException());
     }
 
-    public async Task<List<Object>> ExecuteCommandAsync(string command, Dictionary<string, string> attributes = null)
+    public async Task<List<Object>> ExecuteCommandAsync(string command, Dictionary<string, string> attributes = null, CancellationToken token = default)
     {
-      var resp = await ExecuteCommandAsyncEx(command, attributes);
+      var resp = await ExecuteCommandAsyncEx(command, attributes, token);
       return resp.Objects;
     }
 
-    public async Task<CommandResponse> ExecuteCommandAsyncEx(string command, Dictionary<string, string> attributes = null)
+    public async Task<CommandResponse> ExecuteCommandAsyncEx(string command, Dictionary<string, string> attributes = null, CancellationToken token = default)
     {
       var reqInfo = new RequestInfo();
       string tagStr;
@@ -143,7 +143,7 @@ namespace MikrotikAPI
       try {
         await SendPacketAsync(command, tagStr, attributes).ConfigureAwait(false);
 
-        if (!await WaitFutureTimeout(reqInfo.Tcs.Task, _options.CommandTimeout).ConfigureAwait(false))
+        if (!await WaitFutureTimeout(reqInfo.Tcs.Task, _options.CommandTimeout, token).ConfigureAwait(false))
           throw new TimeoutException();
 
         return new CommandResponse() {
@@ -152,6 +152,10 @@ namespace MikrotikAPI
         };
       }
       catch (MikrotikTrapException) {
+        throw;
+      }
+      catch (OperationCanceledException) {
+        _requests.Remove(tagStr);
         throw;
       }
       catch (TimeoutException e) {
@@ -262,10 +266,11 @@ namespace MikrotikAPI
       await _connection.WriteAsync(BuildAPIPacket(command, tag, attributes)).ConfigureAwait(false);
     }
 
-    private static async Task<bool> WaitFutureTimeout(Task task, TimeSpan timeout)
+    private static async Task<bool> WaitFutureTimeout(Task task, TimeSpan timeout, CancellationToken token = default)
     {
       using (var timeoutCancellationTokenSource = new CancellationTokenSource()) {
-        var completed = await Task.WhenAny(task, Task.Delay(timeout, timeoutCancellationTokenSource.Token));
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellationTokenSource.Token, token);
+        var completed = await Task.WhenAny(task, Task.Delay(timeout, cts.Token));
         if (completed == task) {
           timeoutCancellationTokenSource.Cancel();
           if (completed.IsFaulted && completed.Exception != null)
@@ -276,6 +281,7 @@ namespace MikrotikAPI
           return true;
         }
         else {
+          token.ThrowIfCancellationRequested();
           return false;
         }
       }

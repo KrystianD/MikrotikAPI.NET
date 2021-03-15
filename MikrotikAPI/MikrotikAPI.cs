@@ -204,6 +204,7 @@ namespace MikrotikAPI
           }
         }
       }
+      catch (SocketException e) when (e.SocketErrorCode == SocketError.OperationAborted) { }
       catch (Exception) {
         DisconnectInternal(new MikrotikInternalException());
       }
